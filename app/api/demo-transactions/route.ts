@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { db, demoUser } from "@/lib/db";
+import { db } from "@/lib/db";
+import { requireUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,14 +16,14 @@ function jsonTransaction(transaction: { id: string; notes: string | null; amount
 }
 
 export async function GET() {
-  const user = await demoUser();
+  const user = await requireUser();
   const rows = await db.transaction.findMany({ where: { userId: user.id }, orderBy: { transactionDate: "desc" } });
   return NextResponse.json(rows.map(jsonTransaction), { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const user = await demoUser();
+  const user = await requireUser();
   const row = await db.transaction.create({ data: { userId: user.id, type: body.type, amount: body.amount, category: body.category || "Other", paymentMode: paymentMode(body.paymentMode), transactionDate: new Date(), notes: body.label, isRecurring: body.isRecurring === true, accountId: null } });
   return NextResponse.json(jsonTransaction(row), { status: 201 });
 }
@@ -40,7 +41,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE() {
-  const user = await demoUser();
+  const user = await requireUser();
   await db.transaction.deleteMany({ where: { userId: user.id } });
   return new NextResponse(null, { status: 204 });
 }
