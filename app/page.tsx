@@ -25,7 +25,17 @@ export default function Home() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [saveError, setSaveError] = useState("");
   const load = () => fetch("/api/demo-transactions", { cache: "no-store" }).then((response) => response.json()).then((data: Entry[]) => setEntries(data.map((entry) => ({ ...entry, amount: Number(entry.amount) || 0, type: entry.type === "INCOME" ? "INCOME" : "EXPENSE" }))));
-  useEffect(() => { load(); fetch("/api/demo-accounts").then((response) => response.json()).then(setAccounts); fetch("/api/demo-budgets").then((response) => response.json()).then(setBudgets); }, []);
+  useEffect(() => {
+    load();
+    fetch("/api/demo-accounts").then((response) => response.json()).then(setAccounts);
+    fetch("/api/demo-budgets").then((response) => response.json()).then(setBudgets);
+    const refresh = () => { if (!document.hidden && !formOpen) load(); };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    if (formOpen) return () => { window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); };
+    const timer = window.setInterval(refresh, 5000);
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); };
+  }, [formOpen]);
   const visible = entries.filter((entry) => (filter === "ALL" || entry.type === filter) && `${entry.label} ${entry.category} ${entry.paymentMode}`.toLowerCase().includes(query.toLowerCase()));
   const income = entries.filter((entry) => entry.type === "INCOME").reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0);
   const expenses = entries.filter((entry) => entry.type === "EXPENSE").reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0);
