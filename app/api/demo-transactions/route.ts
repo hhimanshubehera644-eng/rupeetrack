@@ -3,6 +3,13 @@ import { db, demoUser } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+function paymentMode(value: unknown): "UPI" | "CREDIT_CARD" | "NET_BANKING" | "CASH" {
+  if (value === "Credit Card") return "CREDIT_CARD";
+  if (value === "NetBanking") return "NET_BANKING";
+  if (value === "CASH") return "CASH";
+  return "UPI";
+}
+
 function jsonTransaction(transaction: { id: string; notes: string | null; amount: unknown; type: string; category: string; paymentMode: string | null; isRecurring: boolean; accountId: string | null }) {
   return { id: transaction.id, label: transaction.notes ?? "", amount: Number(transaction.amount), type: transaction.type, category: transaction.category, paymentMode: transaction.paymentMode ?? "UPI", isRecurring: transaction.isRecurring, accountId: transaction.accountId ?? 0 };
 }
@@ -16,13 +23,13 @@ export async function GET() {
 export async function POST(request: Request) {
   const body = await request.json();
   const user = await demoUser();
-  const row = await db.transaction.create({ data: { userId: user.id, type: body.type, amount: body.amount, category: body.category || "Other", paymentMode: body.paymentMode || "UPI", transactionDate: new Date(), notes: body.label, isRecurring: body.isRecurring === true, accountId: body.accountId ? String(body.accountId) : null } });
+  const row = await db.transaction.create({ data: { userId: user.id, type: body.type, amount: body.amount, category: body.category || "Other", paymentMode: paymentMode(body.paymentMode), transactionDate: new Date(), notes: body.label, isRecurring: body.isRecurring === true, accountId: null } });
   return NextResponse.json(jsonTransaction(row), { status: 201 });
 }
 
 export async function PUT(request: Request) {
   const body = await request.json();
-  const row = await db.transaction.update({ where: { id: String(body.id) }, data: { type: body.type, amount: body.amount, category: body.category || "Other", paymentMode: body.paymentMode || "UPI", notes: body.label, isRecurring: body.isRecurring === true, accountId: body.accountId ? String(body.accountId) : null } });
+  const row = await db.transaction.update({ where: { id: String(body.id) }, data: { type: body.type, amount: body.amount, category: body.category || "Other", paymentMode: paymentMode(body.paymentMode), notes: body.label, isRecurring: body.isRecurring === true, accountId: null } });
   return NextResponse.json(jsonTransaction(row));
 }
 
