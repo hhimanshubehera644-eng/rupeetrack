@@ -59,3 +59,9 @@ export async function requireUser() {
   if (!user) throw new Error("UNAUTHORIZED");
   return user;
 }
+
+export async function requireAdmin() {
+    const user = await requireUser();
+    if (user.email.toLowerCase() !== "himanshucreation542@gmail.com") throw new Error("FORBIDDEN");
+    return user;
+}
