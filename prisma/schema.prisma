@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TaxRegime {
+  OLD
+  NEW
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum PaymentMode {
+  UPI
+  CREDIT_CARD
+  NET_BANKING
+  CASH
+}
+
+enum AssetType {
+  MUTUAL_FUND
+  STOCK
+  PPF
+  EPF
+  NPS
+  SGB
+  FD
+  REAL_ESTATE
+}
+
+model User {
+  id               String      @id @default(cuid())
+  name             String?
+  email            String      @unique
+  passwordHash     String?
+  panNumber        String?
+  defaultTaxRegime TaxRegime   @default(NEW)
+  transactions     Transaction[]
+  investments      Investment[]
+  budgets          Budget[]
+  accounts         Account[]
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([email])
+}
+
+model Transaction {
+  id              String          @id @default(cuid())
+  userId          String
+  type            TransactionType
+  amount          Decimal         @db.Decimal(14, 2)
+  category        String
+  paymentMode     PaymentMode?
+  transactionDate DateTime
+  notes           String?
+  isRecurring     Boolean         @default(false)
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  accountId        String?
+  account          Account?        @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  @@index([userId, transactionDate])
+  @@index([userId, type])
+  @@index([userId, category])
+  @@index([accountId])
+}
+
+model Account {
+  id        String        @id @default(cuid())
+  userId    String
+  name      String
+  bankName  String
+  lastFour  String?
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([userId])
+}
+
+model Investment {
+  id              String    @id @default(cuid())
+  userId          String
+  assetType       AssetType
+  name            String
+  tickerOrFolio   String?
+  units           Decimal?  @db.Decimal(18, 6)
+  buyPrice        Decimal?  @db.Decimal(14, 2)
+  investedAmount  Decimal   @db.Decimal(14, 2)
+  currentNavOrPrice Decimal? @db.Decimal(14, 2)
+  purchaseDate    DateTime
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId, assetType])
+  @@index([userId, purchaseDate])
+}
+
+model Budget {
+  id           String   @id @default(cuid())
+  userId       String
+  category     String
+  monthlyLimit Decimal  @db.Decimal(14, 2)
+  month        Int
+  year         Int
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, category, month, year])
+  @@index([userId, year, month])
+}
