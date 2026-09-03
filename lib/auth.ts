@@ -1,3 +1,4 @@
+const SESSION_MAX_AGE = 60 * 60 * 24 * 365;
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
@@ -40,7 +41,7 @@ export async function setSession(userId: string) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 30,
+    maxAge: SESSION_MAX_AGE,    expires: new Date(Date.now() + SESSION_MAX_AGE * 1000),
   });
 }
 
